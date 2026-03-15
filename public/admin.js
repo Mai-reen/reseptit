@@ -102,6 +102,7 @@ async function populateEditSelect() {
         const recipes = await response.json();
         
         const select = document.getElementById('editRecipeSelect');
+        select.innerHTML = ''; // Clear existing options first
         
         recipes.forEach(recipe => {
             const option = document.createElement('option');
@@ -110,13 +111,17 @@ async function populateEditSelect() {
             select.appendChild(option);
         });
         
-        select.addEventListener('change', (e) => {
-            if (e.target.value) {
-                loadForEdit(parseInt(e.target.value));
-            }
-        });
+        // Remove previous listener to prevent duplicates
+        select.removeEventListener('change', handleEditRecipeChange);
+        select.addEventListener('change', handleEditRecipeChange);
     } catch (error) {
         console.error('Error loading recipes for edit:', error);
+    }
+}
+
+function handleEditRecipeChange(e) {
+    if (e.target.value) {
+        loadForEdit(parseInt(e.target.value));
     }
 }
 
