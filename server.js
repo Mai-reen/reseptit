@@ -28,7 +28,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Serve static files
-app.use(express.static(join(__dirname, 'resepti')));
+app.use(express.static(__dirname));
 app.use(express.static(join(__dirname, 'public')));
 
 // ============ AUTHENTICATION ROUTES ============
@@ -224,7 +224,7 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
 // Serve index.html for all other routes (SPA fallback)
 app.get('*', (req, res) => {
   try {
-    const indexPath = join(__dirname, 'resepti', 'index.html');
+    const indexPath = join(__dirname, 'index.html');
     const html = fs.readFileSync(indexPath, 'utf-8');
     res.setHeader('Content-Type', 'text/html');
     res.send(html);

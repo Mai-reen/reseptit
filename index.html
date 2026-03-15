@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minnan reseptikokoelma</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Minnan reseptikokoelma</h1>
+    </header>
+    
+    <div class="container">
+        <section class="search-section">
+            <h2>Etsi Reseptejä</h2>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Etsi reseptejä...">
+                <button id="search-btn">Etsi</button>
+            </div>
+            
+            <div class="category-filters">
+                <button class="filter-btn active" data-category="kaikki">Kaikki</button>
+                <button class="filter-btn" data-category="pääruoka">Pääruoka</button>
+                <button class="filter-btn" data-category="jälkiruoka">Jälkiruoka</button>
+                <button class="filter-btn" data-category="kasvisruoka">Kasvisruoka</button>
+                <button class="filter-btn" data-category="alkupala">Alkupala</button>
+                <button class="filter-btn" data-category="leivonnainen">Leivonnainen</button>
+                <button class="filter-btn" data-category="aasialainen">Aasialainen</button>
+            </div>
+        </section>
+        
+        <section class="recipes-section">
+            <h2>Reseptit</h2>
+            <div class="recipe-grid" id="recipe-container">
+                <!-- Reseptit lisätään tähän dynaamisesti -->
+            </div>
+        </section>
+        
+        <section class="grocery-list-section">
+            <h2>🛒 Ostoslista</h2>
+            <ul id="grocery-list">
+                <li class="empty-list">Ostoslistasi on tyhjä. Lisää aineksia resepteistä!</li>
+            </ul>
+            <button class="clear-list-btn" id="clear-list-btn">Tyhjennä koko lista</button>
+        </section>
+    </div>
+
+    <!-- Ohjenäkymä -->
+    <div id="recipe-modal" class="recipe-modal">
+        <div class="recipe-modal-content">
+            <button class="close-modal">&times;</button>
+            <div id="modal-recipe-content">
+                <!-- Ohjeet tulevat tähän dynaamisesti -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Footer -->
+    <footer class="admin-footer">
+        <a href="/login.html" class="admin-login-btn">👨‍💼 Admin Login</a>
+    </footer>
+
+    <script src="app.js" defer></script>
+</body>
+</html>
