@@ -473,30 +473,3 @@ header::after {
         padding: 1.5rem;
     }
 }
-
-/* Admin Footer */
-.admin-footer {
-    background: linear-gradient(135deg, var(--dark-pink) 0%, var(--light-purple) 100%);
-    padding: 2rem 1rem;
-    text-align: center;
-    box-shadow: 0 -4px 20px rgba(216, 112, 147, 0.3);
-    margin-top: 3rem;
-}
-
-.admin-login-btn {
-    display: inline-block;
-    background: linear-gradient(135deg, var(--medium-pink) 0%, var(--dark-pink) 100%);
-    color: var(--white);
-    padding: 12px 24px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(216, 112, 147, 0.3);
-}
-
-.admin-login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(216, 112, 147, 0.5);
-}
