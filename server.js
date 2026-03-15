@@ -27,32 +27,23 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Explicitly serve static files with correct MIME types
-app.get('*.js', (req, res) => {
-  try {
-    const filePath = join(__dirname, req.path);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    res.setHeader('Content-Type', 'application/javascript');
-    res.send(content);
-  } catch (error) {
-    res.status(404).send('Not found');
+// Serve static files FIRST (before API routes)
+app.use(express.static(__dirname, {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
   }
-});
-
-app.get('*.css', (req, res) => {
-  try {
-    const filePath = join(__dirname, req.path);
-    const content = fs.readFileSync(filePath, 'utf-8');
-    res.setHeader('Content-Type', 'text/css');
-    res.send(content);
-  } catch (error) {
-    res.status(404).send('Not found');
+}));
+app.use(express.static(join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
   }
-});
-
-// Serve other static files
-app.use(express.static(__dirname));
-app.use(express.static(join(__dirname, 'public')));
+}));
 
 // ============ AUTHENTICATION ROUTES ============
 
