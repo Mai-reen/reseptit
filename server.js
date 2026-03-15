@@ -27,23 +27,33 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Serve static files FIRST (before API routes)
-app.use(express.static(__dirname, {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    } else if (path.endsWith('.css')) {
-      res.setHeader('Content-Type', 'text/css');
-    }
+// Serve CSS file
+app.get('/styles.css', (req, res) => {
+  try {
+    const css = fs.readFileSync(join(__dirname, 'styles.css'), 'utf-8');
+    res.setHeader('Content-Type', 'text/css; charset=utf-8');
+    res.send(css);
+  } catch (error) {
+    console.error('Error serving styles.css:', error);
+    res.status(404).send('Not found');
   }
-}));
-app.use(express.static(join(__dirname, 'public'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
+});
+
+// Serve app.js file
+app.get('/app.js', (req, res) => {
+  try {
+    const js = fs.readFileSync(join(__dirname, 'app.js'), 'utf-8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.send(js);
+  } catch (error) {
+    console.error('Error serving app.js:', error);
+    res.status(404).send('Not found');
   }
-}));
+});
+
+// Serve static files as fallback
+app.use(express.static(__dirname));
+app.use(express.static(join(__dirname, 'public')));
 
 // ============ AUTHENTICATION ROUTES ============
 
