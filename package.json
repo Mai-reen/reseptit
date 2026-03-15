@@ -1,0 +1,23 @@
+{
+  "name": "resepti-admin",
+  "version": "1.0.0",
+  "description": "Recipe collection with admin panel and Supabase integration",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["recipes", "supabase", "admin"],
+  "author": "Minna",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "cookie-parser": "^1.4.6",
+    "jsonwebtoken": "^9.0.0"
+  }
+}
