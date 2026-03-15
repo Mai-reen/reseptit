@@ -222,7 +222,7 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
 
 // Serve index.html for all other routes (SPA fallback)
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'resepti', 'respeti.html'));
+  res.sendFile(join(__dirname, 'resepti', 'index.html'));
 });
 
 // Start server

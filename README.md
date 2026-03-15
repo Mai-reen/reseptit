@@ -119,7 +119,7 @@ c:\Users\Minna\Desktop\a-vyo\
 │   ├── admin.html          # Admin panel
 │   └── admin.js            # Admin panel logic
 └── resepti/
-    ├── respeti.html        # Main recipe page
+    ├── index.html         # Main recipe page
     ├── styles.css          # Styles
     └── app.js              # Frontend recipe logic
 ```
