@@ -8,14 +8,14 @@ async function checkAuth() {
         });
         
         if (!response.ok) {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         } else {
             loadRecipes();
             populateEditSelect();
         }
     } catch (error) {
         console.error('Auth check failed:', error);
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     }
 }
 
@@ -25,7 +25,7 @@ function logout() {
             method: 'POST',
             credentials: 'include'
         }).then(() => {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         });
     }
 }

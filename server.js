@@ -18,13 +18,32 @@ const { supabase } = await import('./utils/supabase.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Security: Set secure cookie flags based on environment
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction, // HTTPS only in production
+  sameSite: 'strict',
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+};
+
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https:");
+  next();
+});
 
 // Middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost', 'https://reseptit-gamma.vercel.app', 'https://reseptit.vercel.app'],
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 // Serve CSS file
@@ -62,6 +81,17 @@ app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -72,7 +102,7 @@ app.post('/api/auth/signup', async (req, res) => {
     }
     
     const token = generateToken(data.user.id);
-    res.cookie('authToken', token, { httpOnly: true, secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('authToken', token, cookieOptions);
     
     return res.status(200).json({ user: data.user, token });
   } catch (error) {
@@ -85,6 +115,11 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
+    // Input validation
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -95,7 +130,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const token = generateToken(data.user.id);
-    res.cookie('authToken', token, { httpOnly: true, secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    res.cookie('authToken', token, cookieOptions);
     
     return res.status(200).json({ user: data.user, token });
   } catch (error) {
@@ -167,6 +202,11 @@ app.get('/api/recipes/:id', async (req, res) => {
 app.post('/api/recipes', authMiddleware, async (req, res) => {
   try {
     const { title, description, ingredientAmounts, categories, image, instructions } = req.body;
+    
+    // Input validation
+    if (!title || !description || !image) {
+      return res.status(400).json({ error: 'Title, description, and image are required' });
+    }
     
     const { data, error } = await supabase
       .from('recipes')
@@ -242,6 +282,32 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
     return res.status(200).json({ message: 'Recipe deleted successfully' });
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ URL REWRITING (hide .html extensions) ============
+
+// Login page (no auth required)
+app.get('/login', (req, res) => {
+  try {
+    const html = fs.readFileSync(join(__dirname, 'public', 'login.html'), 'utf-8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving login page:', error);
+    res.status(404).send('Not found');
+  }
+});
+
+// Admin page (auth required)
+app.get('/admin', authMiddleware, (req, res) => {
+  try {
+    const html = fs.readFileSync(join(__dirname, 'public', 'admin.html'), 'utf-8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving admin page:', error);
+    res.status(404).send('Not found');
   }
 });
 
