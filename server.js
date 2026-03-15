@@ -27,7 +27,30 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Serve static files
+// Explicitly serve static files with correct MIME types
+app.get('*.js', (req, res) => {
+  try {
+    const filePath = join(__dirname, req.path);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.setHeader('Content-Type', 'application/javascript');
+    res.send(content);
+  } catch (error) {
+    res.status(404).send('Not found');
+  }
+});
+
+app.get('*.css', (req, res) => {
+  try {
+    const filePath = join(__dirname, req.path);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    res.setHeader('Content-Type', 'text/css');
+    res.send(content);
+  } catch (error) {
+    res.status(404).send('Not found');
+  }
+});
+
+// Serve other static files
 app.use(express.static(__dirname));
 app.use(express.static(join(__dirname, 'public')));
 
@@ -221,8 +244,13 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Serve index.html for all other routes (SPA fallback)
+// Serve index.html for all other routes (SPA fallback) - but skip files with extensions
 app.get('*', (req, res) => {
+  // Don't serve HTML for requests with file extensions
+  if (req.path.includes('.')) {
+    return res.status(404).send('Not found');
+  }
+  
   try {
     const indexPath = join(__dirname, 'index.html');
     const html = fs.readFileSync(indexPath, 'utf-8');
