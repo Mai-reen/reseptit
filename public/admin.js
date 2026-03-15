@@ -12,11 +12,29 @@ async function checkAuth() {
         } else {
             loadRecipes();
             populateEditSelect();
+            setupEventListeners();
         }
     } catch (error) {
         console.error('Auth check failed:', error);
         window.location.href = '/login';
     }
+}
+
+// Setup event listeners (CSP compliant - no inline handlers)
+function setupEventListeners() {
+    // Logout button
+    const logoutBtn = document.querySelector('.logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+
+    // Tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const tabName = this.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
 }
 
 function logout() {

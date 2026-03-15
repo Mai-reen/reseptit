@@ -70,6 +70,30 @@ app.get('/app.js', (req, res) => {
   }
 });
 
+// Serve login.js file
+app.get('/login.js', (req, res) => {
+  try {
+    const js = fs.readFileSync(join(__dirname, 'public', 'login.js'), 'utf-8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.send(js);
+  } catch (error) {
+    console.error('Error serving login.js:', error);
+    res.status(404).send('Not found');
+  }
+});
+
+// Serve admin.js file
+app.get('/admin.js', (req, res) => {
+  try {
+    const js = fs.readFileSync(join(__dirname, 'public', 'admin.js'), 'utf-8');
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.send(js);
+  } catch (error) {
+    console.error('Error serving admin.js:', error);
+    res.status(404).send('Not found');
+  }
+});
+
 // Serve static files as fallback
 app.use(express.static(__dirname));
 app.use(express.static(join(__dirname, 'public')));
