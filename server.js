@@ -10,6 +10,7 @@ dotenv.config({ path: resolve(__dirname, '.env.local') });
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import fs from 'fs';
 import { join } from 'path';
 import { authMiddleware, generateToken, verifyToken } from './utils/auth.js';
 
@@ -222,7 +223,15 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
 
 // Serve index.html for all other routes (SPA fallback)
 app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'resepti', 'index.html'));
+  try {
+    const indexPath = join(__dirname, 'resepti', 'index.html');
+    const html = fs.readFileSync(indexPath, 'utf-8');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('Error serving index.html:', error);
+    res.status(404).send('Not found');
+  }
 });
 
 // Start server
