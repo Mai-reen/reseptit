@@ -324,7 +324,7 @@ app.get('/login', (req, res) => {
 });
 
 // Admin page (auth required)
-app.get('/admin', authMiddleware, (req, res) => {
+app.get('/admin', (req, res) => {
   try {
     const html = fs.readFileSync(join(__dirname, 'public', 'admin.html'), 'utf-8');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
