@@ -171,11 +171,11 @@ app.post('/api/auth/logout', (req, res) => {
 // Get current user
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    return res.status(200).json({ user });
+    return res.status(200).json({
+      user: {
+        id: req.user.userId
+      }
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
