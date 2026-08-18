@@ -1,3 +1,4 @@
+```js
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -12,7 +13,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import fs from 'fs';
 import { join } from 'path';
-import { authMiddleware, generateToken, verifyToken } from './utils/auth.js';
+import { authMiddleware, generateToken } from './utils/auth.js';
 
 const { supabase, supabaseAdmin } = await import('./utils/supabase.js');
 
@@ -20,36 +21,50 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Security: Set secure cookie flags based on environment
 const cookieOptions = {
   httpOnly: true,
-  secure: isProduction, // HTTPS only in production
+  secure: isProduction,
   sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
-// Security headers middleware
+// Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https:");
+  res.setHeader(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains'
+  );
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https:"
+  );
   next();
 });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost', 'https://reseptit-gamma.vercel.app', 'https://reseptit.vercel.app'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost',
+    'https://reseptit-gamma.vercel.app',
+    'https://reseptit.vercel.app'
+  ],
   credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
-// Serve CSS file
+// Serve CSS
 app.get('/styles.css', (req, res) => {
   try {
-    const css = fs.readFileSync(join(__dirname, 'styles.css'), 'utf-8');
+    const css = fs.readFileSync(
+      join(__dirname, 'styles.css'),
+      'utf-8'
+    );
     res.setHeader('Content-Type', 'text/css; charset=utf-8');
     res.send(css);
   } catch (error) {
@@ -58,11 +73,17 @@ app.get('/styles.css', (req, res) => {
   }
 });
 
-// Serve app.js file
+// Serve app.js
 app.get('/app.js', (req, res) => {
   try {
-    const js = fs.readFileSync(join(__dirname, 'app.js'), 'utf-8');
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    const js = fs.readFileSync(
+      join(__dirname, 'app.js'),
+      'utf-8'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/javascript; charset=utf-8'
+    );
     res.send(js);
   } catch (error) {
     console.error('Error serving app.js:', error);
@@ -70,11 +91,17 @@ app.get('/app.js', (req, res) => {
   }
 });
 
-// Serve login.js file
+// Serve login.js
 app.get('/login.js', (req, res) => {
   try {
-    const js = fs.readFileSync(join(__dirname, 'public', 'login.js'), 'utf-8');
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    const js = fs.readFileSync(
+      join(__dirname, 'public', 'login.js'),
+      'utf-8'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/javascript; charset=utf-8'
+    );
     res.send(js);
   } catch (error) {
     console.error('Error serving login.js:', error);
@@ -82,11 +109,17 @@ app.get('/login.js', (req, res) => {
   }
 });
 
-// Serve admin.js file
+// Serve admin.js
 app.get('/admin.js', (req, res) => {
   try {
-    const js = fs.readFileSync(join(__dirname, 'public', 'admin.js'), 'utf-8');
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    const js = fs.readFileSync(
+      join(__dirname, 'public', 'admin.js'),
+      'utf-8'
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/javascript; charset=utf-8'
+    );
     res.send(js);
   } catch (error) {
     console.error('Error serving admin.js:', error);
@@ -94,43 +127,60 @@ app.get('/admin.js', (req, res) => {
   }
 });
 
-// Serve static files as fallback
+// Static files
 app.use(express.static(__dirname));
 app.use(express.static(join(__dirname, 'public')));
 
-// ============ AUTHENTICATION ROUTES ============
+// =====================================================
+// AUTHENTICATION
+// =====================================================
 
 // Signup
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Input validation
+
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({
+        error: 'Email and password are required'
+      });
     }
+
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters'
+      });
     }
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({
+        error: 'Invalid email format'
+      });
     }
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
-      password,
+      password
     });
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     const token = generateToken(data.user.id);
+
     res.cookie('authToken', token, cookieOptions);
-    
-    return res.status(200).json({ user: data.user, token });
+
+    return res.status(200).json({
+      user: data.user
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
@@ -138,37 +188,50 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    // Input validation
+
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({
+        error: 'Email and password are required'
+      });
     }
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
+
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     const token = generateToken(data.user.id);
+
     res.cookie('authToken', token, cookieOptions);
-    
-    return res.status(200).json({ user: data.user, token });
+
+    return res.status(200).json({
+      user: data.user
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
 // Logout
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('authToken');
-  return res.status(200).json({ message: 'Logged out successfully' });
+
+  return res.status(200).json({
+    message: 'Logged out successfully'
+  });
 });
 
-// Get current user
+// Current user
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     return res.status(200).json({
@@ -177,11 +240,15 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
-// ============ RECIPE ROUTES ============
+// =====================================================
+// RECIPES
+// =====================================================
 
 // Get all recipes
 app.get('/api/recipes', async (req, res) => {
@@ -190,14 +257,19 @@ app.get('/api/recipes', async (req, res) => {
       .from('recipes')
       .select('*')
       .order('id', { ascending: true });
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     return res.status(200).json(data);
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
@@ -205,34 +277,50 @@ app.get('/api/recipes', async (req, res) => {
 app.get('/api/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const { data, error } = await supabase
       .from('recipes')
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     return res.status(200).json(data);
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
-// Create recipe (admin only)
+// =====================================================
+// CREATE RECIPE - ADMIN
+// =====================================================
+
 app.post('/api/recipes', authMiddleware, async (req, res) => {
   try {
-    const { title, description, ingredientAmounts, categories, image, instructions } = req.body;
-    
-    // Input validation
+    const {
+      title,
+      description,
+      ingredientAmounts,
+      categories,
+      image,
+      instructions
+    } = req.body;
+
     if (!title || !description || !image) {
-      return res.status(400).json({ error: 'Title, description, and image are required' });
+      return res.status(400).json({
+        error: 'Title, description, and image are required'
+      });
     }
-    
-    const { data, error } = await supabase
+
+    const { data, error } = await supabaseAdmin
       .from('recipes')
       .insert([
         {
@@ -242,29 +330,49 @@ app.post('/api/recipes', authMiddleware, async (req, res) => {
           categories,
           image,
           instructions,
-          created_by: req.user.userId,
+          created_by: req.user.userId
         }
       ])
       .select()
       .single();
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      console.error('Create recipe error:', error);
+
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     return res.status(201).json(data);
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Create recipe error:', error);
+
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
-// Update recipe (admin only)
+// =====================================================
+// UPDATE RECIPE - ADMIN
+// =====================================================
+
 app.put('/api/recipes/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, ingredientAmounts, categories, image, instructions } = req.body;
-    
-    const { data, error } = await supabase
+
+    const {
+      title,
+      description,
+      ingredientAmounts,
+      categories,
+      image,
+      instructions
+    } = req.body;
+
+    const { data, error } = await supabaseAdmin
       .from('recipes')
       .update({
         title,
@@ -273,80 +381,116 @@ app.put('/api/recipes/:id', authMiddleware, async (req, res) => {
         categories,
         image,
         instructions,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      console.error('Update recipe error:', error);
+
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
+
     return res.status(200).json(data);
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Update recipe error:', error);
+
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
-// Delete recipe (admin only)
+// =====================================================
+// DELETE RECIPE - ADMIN
+// =====================================================
+
 app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const { error } = await supabase
+
+    const { error } = await supabaseAdmin
       .from('recipes')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
-      return res.status(400).json({ error: error.message });
+      console.error('Delete recipe error:', error);
+
+      return res.status(400).json({
+        error: error.message
+      });
     }
-    
-    return res.status(200).json({ message: 'Recipe deleted successfully' });
+
+    return res.status(200).json({
+      message: 'Recipe deleted successfully'
+    });
+
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Delete recipe error:', error);
+
+    return res.status(500).json({
+      error: error.message
+    });
   }
 });
 
-// ============ URL REWRITING (hide .html extensions) ============
+// =====================================================
+// PAGES
+// =====================================================
 
-// Login page (no auth required)
+// Login
 app.get('/login', (req, res) => {
   try {
-    const html = fs.readFileSync(join(__dirname, 'public', 'login.html'), 'utf-8');
+    const html = fs.readFileSync(
+      join(__dirname, 'public', 'login.html'),
+      'utf-8'
+    );
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
+
   } catch (error) {
     console.error('Error serving login page:', error);
     res.status(404).send('Not found');
   }
 });
 
-// Admin page (auth required)
+// Admin
 app.get('/admin', (req, res) => {
   try {
-    const html = fs.readFileSync(join(__dirname, 'public', 'admin.html'), 'utf-8');
+    const html = fs.readFileSync(
+      join(__dirname, 'public', 'admin.html'),
+      'utf-8'
+    );
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
+
   } catch (error) {
     console.error('Error serving admin page:', error);
     res.status(404).send('Not found');
   }
 });
 
-// Serve index.html for all other routes (SPA fallback) - but skip files with extensions
+// SPA fallback
 app.get('*', (req, res) => {
-  // Don't serve HTML for requests with file extensions
   if (req.path.includes('.')) {
     return res.status(404).send('Not found');
   }
-  
+
   try {
     const indexPath = join(__dirname, 'index.html');
     const html = fs.readFileSync(indexPath, 'utf-8');
+
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
+
   } catch (error) {
     console.error('Error serving index.html:', error);
     res.status(404).send('Not found');
@@ -357,3 +501,4 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+```
