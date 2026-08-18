@@ -14,7 +14,7 @@ import fs from 'fs';
 import { join } from 'path';
 import { authMiddleware, generateToken, verifyToken } from './utils/auth.js';
 
-const { supabase } = await import('./utils/supabase.js');
+const { supabase, supabaseAdmin } = await import('./utils/supabase.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
