@@ -1,29 +1,24 @@
+// utils/auth.js
 import jwt from 'jsonwebtoken';
 
-export const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
-export const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
+export const generateToken = (userId) => {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 };
 
 export const authMiddleware = (req, res, next) => {
-  const token = req.cookies.authToken;
-  
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  const decoded = verifyToken(token);
-  if (!decoded) {
+  try {
+    const token = req.cookies?.authToken;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = { userId: decoded.userId };
+    next();
+  } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
   }
-  
-  req.user = decoded;
-  next();
 };
