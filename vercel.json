@@ -1,27 +1,15 @@
 {
   "functions": {
-    "api/*.js": {
+    "api/index.js": {
       "maxDuration": 10,
-      "memory": 1024
+      "memory": 1024,
+      "runtime": "nodejs18.x"
     }
   },
-  "headers": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET,POST,PUT,DELETE,OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, Cookie"
-        }
-      ]
+      "src": "/api/(.*)",
+      "dest": "api/index.js"
     }
   ]
 }
