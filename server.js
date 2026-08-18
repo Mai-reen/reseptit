@@ -1,143 +1,106 @@
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: resolve(__dirname, '.env.local') });
-
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import fs from 'fs';
-import { join } from 'path';
-import { authMiddleware, generateToken } from './utils/auth.js';
 
-const { supabase, supabaseAdmin } = await import('./utils/supabase.js');
+import { authMiddleware, generateToken } from '../utils/auth.js';
+import { supabase, supabaseAdmin } from '../utils/supabase.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const isProduction = process.env.NODE_ENV === 'production';
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000
-};
+// -----------------------------------------------------
+// BASIC CONFIG
+// -----------------------------------------------------
 
-// Security headers
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost',
+  'https://reseptit-gamma.vercel.app',
+  'https://reseptit.vercel.app'
+];
+
+// -----------------------------------------------------
+// MIDDLEWARE
+// -----------------------------------------------------
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
+
   res.setHeader(
     'Strict-Transport-Security',
     'max-age=31536000; includeSubDomains'
   );
+
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https:"
+    "default-src 'self'; " +
+      "script-src 'self'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' data: https:; " +
+      "connect-src 'self' https:;"
   );
+
   next();
 });
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost',
-    'https://reseptit-gamma.vercel.app',
-    'https://reseptit.vercel.app'
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests without an Origin header
+      // such as server-to-server requests.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('CORS origin not allowed'));
+    },
+    credentials: true
+  })
+);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
-// Serve CSS
-app.get('/styles.css', (req, res) => {
-  try {
-    const css = fs.readFileSync(
-      join(__dirname, 'styles.css'),
-      'utf-8'
-    );
-    res.setHeader('Content-Type', 'text/css; charset=utf-8');
-    res.send(css);
-  } catch (error) {
-    console.error('Error serving styles.css:', error);
-    res.status(404).send('Not found');
-  }
-});
+// -----------------------------------------------------
+// COOKIE
+// -----------------------------------------------------
 
-// Serve app.js
-app.get('/app.js', (req, res) => {
-  try {
-    const js = fs.readFileSync(
-      join(__dirname, 'app.js'),
-      'utf-8'
-    );
-    res.setHeader(
-      'Content-Type',
-      'application/javascript; charset=utf-8'
-    );
-    res.send(js);
-  } catch (error) {
-    console.error('Error serving app.js:', error);
-    res.status(404).send('Not found');
-  }
-});
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/'
+};
 
-// Serve login.js
-app.get('/login.js', (req, res) => {
-  try {
-    const js = fs.readFileSync(
-      join(__dirname, 'public', 'login.js'),
-      'utf-8'
-    );
-    res.setHeader(
-      'Content-Type',
-      'application/javascript; charset=utf-8'
-    );
-    res.send(js);
-  } catch (error) {
-    console.error('Error serving login.js:', error);
-    res.status(404).send('Not found');
-  }
-});
+// -----------------------------------------------------
+// HEALTH CHECK
+// -----------------------------------------------------
 
-// Serve admin.js
-app.get('/admin.js', (req, res) => {
-  try {
-    const js = fs.readFileSync(
-      join(__dirname, 'public', 'admin.js'),
-      'utf-8'
-    );
-    res.setHeader(
-      'Content-Type',
-      'application/javascript; charset=utf-8'
-    );
-    res.send(js);
-  } catch (error) {
-    console.error('Error serving admin.js:', error);
-    res.status(404).send('Not found');
-  }
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    message: 'API is running'
+  });
 });
-
-// Static files
-app.use(express.static(__dirname));
-app.use(express.static(join(__dirname, 'public')));
 
 // =====================================================
 // AUTHENTICATION
 // =====================================================
 
-// Signup
+// -----------------------------------------------------
+// SIGNUP
+// -----------------------------------------------------
+
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body ?? {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -163,8 +126,16 @@ app.post('/api/auth/signup', async (req, res) => {
     });
 
     if (error) {
+      console.error('Signup error:', error);
+
       return res.status(400).json({
         error: error.message
+      });
+    }
+
+    if (!data?.user) {
+      return res.status(400).json({
+        error: 'Unable to create user'
       });
     }
 
@@ -175,18 +146,22 @@ app.post('/api/auth/signup', async (req, res) => {
     return res.status(200).json({
       user: data.user
     });
-
   } catch (error) {
+    console.error('Signup exception:', error);
+
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// Login
+// -----------------------------------------------------
+// LOGIN
+// -----------------------------------------------------
+
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body ?? {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -194,15 +169,22 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    const { data, error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
     if (error) {
+      console.error('Login error:', error);
+
       return res.status(400).json({
         error: error.message
+      });
+    }
+
+    if (!data?.user) {
+      return res.status(401).json({
+        error: 'Invalid login'
       });
     }
 
@@ -213,24 +195,36 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(200).json({
       user: data.user
     });
-
   } catch (error) {
+    console.error('Login exception:', error);
+
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// Logout
+// -----------------------------------------------------
+// LOGOUT
+// -----------------------------------------------------
+
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('authToken');
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
 
   return res.status(200).json({
     message: 'Logged out successfully'
   });
 });
 
-// Current user
+// -----------------------------------------------------
+// CURRENT USER
+// -----------------------------------------------------
+
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
   try {
     return res.status(200).json({
@@ -239,8 +233,10 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Auth/me error:', error);
+
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
@@ -249,7 +245,10 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 // RECIPES
 // =====================================================
 
-// Get all recipes
+// -----------------------------------------------------
+// GET ALL RECIPES
+// -----------------------------------------------------
+
 app.get('/api/recipes', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -258,21 +257,27 @@ app.get('/api/recipes', async (req, res) => {
       .order('id', { ascending: true });
 
     if (error) {
+      console.error('Get recipes error:', error);
+
       return res.status(400).json({
         error: error.message
       });
     }
 
-    return res.status(200).json(data);
-
+    return res.status(200).json(data ?? []);
   } catch (error) {
+    console.error('Get recipes exception:', error);
+
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// Get single recipe
+// -----------------------------------------------------
+// GET SINGLE RECIPE
+// -----------------------------------------------------
+
 app.get('/api/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -284,23 +289,30 @@ app.get('/api/recipes/:id', async (req, res) => {
       .single();
 
     if (error) {
-      return res.status(400).json({
+      console.error('Get recipe error:', error);
+
+      return res.status(404).json({
         error: error.message
       });
     }
 
     return res.status(200).json(data);
-
   } catch (error) {
+    console.error('Get recipe exception:', error);
+
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
 // =====================================================
-// CREATE RECIPE - ADMIN
+// ADMIN RECIPE MANAGEMENT
 // =====================================================
+
+// -----------------------------------------------------
+// CREATE RECIPE
+// -----------------------------------------------------
 
 app.post('/api/recipes', authMiddleware, async (req, res) => {
   try {
@@ -311,11 +323,17 @@ app.post('/api/recipes', authMiddleware, async (req, res) => {
       categories,
       image,
       instructions
-    } = req.body;
+    } = req.body ?? {};
 
     if (!title || !description || !image) {
       return res.status(400).json({
         error: 'Title, description, and image are required'
+      });
+    }
+
+    if (!req.user?.userId) {
+      return res.status(401).json({
+        error: 'Unauthorized'
       });
     }
 
@@ -344,19 +362,18 @@ app.post('/api/recipes', authMiddleware, async (req, res) => {
     }
 
     return res.status(201).json(data);
-
   } catch (error) {
-    console.error('Create recipe error:', error);
+    console.error('Create recipe exception:', error);
 
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// =====================================================
-// UPDATE RECIPE - ADMIN
-// =====================================================
+// -----------------------------------------------------
+// UPDATE RECIPE
+// -----------------------------------------------------
 
 app.put('/api/recipes/:id', authMiddleware, async (req, res) => {
   try {
@@ -369,7 +386,7 @@ app.put('/api/recipes/:id', authMiddleware, async (req, res) => {
       categories,
       image,
       instructions
-    } = req.body;
+    } = req.body ?? {};
 
     const { data, error } = await supabaseAdmin
       .from('recipes')
@@ -395,19 +412,18 @@ app.put('/api/recipes/:id', authMiddleware, async (req, res) => {
     }
 
     return res.status(200).json(data);
-
   } catch (error) {
-    console.error('Update recipe error:', error);
+    console.error('Update recipe exception:', error);
 
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// =====================================================
-// DELETE RECIPE - ADMIN
-// =====================================================
+// -----------------------------------------------------
+// DELETE RECIPE
+// -----------------------------------------------------
 
 app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
   try {
@@ -429,75 +445,47 @@ app.delete('/api/recipes/:id', authMiddleware, async (req, res) => {
     return res.status(200).json({
       message: 'Recipe deleted successfully'
     });
-
   } catch (error) {
-    console.error('Delete recipe error:', error);
+    console.error('Delete recipe exception:', error);
 
     return res.status(500).json({
-      error: error.message
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
 
-// =====================================================
-// PAGES
-// =====================================================
+// -----------------------------------------------------
+// UNKNOWN API ROUTE
+// -----------------------------------------------------
 
-// Login
-app.get('/login', (req, res) => {
-  try {
-    const html = fs.readFileSync(
-      join(__dirname, 'public', 'login.html'),
-      'utf-8'
-    );
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
-
-  } catch (error) {
-    console.error('Error serving login page:', error);
-    res.status(404).send('Not found');
-  }
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    error: 'API endpoint not found'
+  });
 });
 
-// Admin
-app.get('/admin', (req, res) => {
-  try {
-    const html = fs.readFileSync(
-      join(__dirname, 'public', 'admin.html'),
-      'utf-8'
-    );
+// -----------------------------------------------------
+// ERROR HANDLER
+// -----------------------------------------------------
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
+app.use((error, req, res, next) => {
+  console.error('Unhandled Express error:', error);
 
-  } catch (error) {
-    console.error('Error serving admin page:', error);
-    res.status(404).send('Not found');
-  }
-});
-
-// SPA fallback
-app.get('*', (req, res) => {
-  if (req.path.includes('.')) {
-    return res.status(404).send('Not found');
+  if (res.headersSent) {
+    return next(error);
   }
 
-  try {
-    const indexPath = join(__dirname, 'index.html');
-    const html = fs.readFileSync(indexPath, 'utf-8');
-
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-
-  } catch (error) {
-    console.error('Error serving index.html:', error);
-    res.status(404).send('Not found');
-  }
+  return res.status(500).json({
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : error instanceof Error
+          ? error.message
+          : 'Internal server error'
+  });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
-```
+// IMPORTANT:
+// Do NOT use app.listen() on Vercel.
+// Vercel invokes this exported Express application.
+export default app;
